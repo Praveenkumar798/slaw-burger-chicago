@@ -31,6 +31,13 @@ inventory = InventoryManager()
 delivery_manager = GoodsInwardManager()
 adjustment_manager = AdjustmentManager()
 
+def sync_db_to_cloud():
+    """Sync database to Cloud Storage after changes"""
+    try:
+        app_startup.sync_database_to_storage()
+    except Exception as e:
+        print(f"⚠️  Error syncing database to cloud: {e}")
+
 @app.route('/api/setup/credentials', methods=['GET', 'POST', 'PUT'])
 def manage_credentials():
     """Get or update Toast API credentials"""
@@ -232,6 +239,7 @@ def update_ingredient(id):
     try:
         success = inventory.update_ingredient_details(id, data)
         if success:
+            sync_db_to_cloud()
             return jsonify({"status": "success", "message": "Ingredient updated"})
         return jsonify({"status": "error", "message": "Ingredient not found"}), 404
     except Exception as e:
@@ -260,6 +268,7 @@ def receive_delivery():
             unit_cost=float(data['cost']) if data.get('cost') else None
         )
         if success:
+            sync_db_to_cloud()
             return jsonify({"status": "success", "message": "Delivery received"})
         return jsonify({"status": "error", "message": "Failed to update inventory"}), 400
     except Exception as e:
@@ -276,6 +285,7 @@ def receive_bulk_delivery():
         success = delivery_manager.receive_multiple_items(items)
         
         if success:
+            sync_db_to_cloud()
             return jsonify({"status": "success", "message": f"Successfully received {len(items)} items"})
         return jsonify({"status": "warning", "message": "Completed with some potential warnings"}), 200
     except Exception as e:
@@ -294,6 +304,7 @@ def log_adjustment():
             notes=data.get('notes')
         )
         if success:
+            sync_db_to_cloud()
             return jsonify({"status": "success", "message": "Adjustment logged"})
         return jsonify({"status": "error", "message": "Failed to log adjustment"}), 400
     except Exception as e:
@@ -402,6 +413,7 @@ def save_recipe():
         success = inventory.update_recipe(menu_guid, components)
         
         if success:
+            sync_db_to_cloud()
             return jsonify({"status": "success", "message": "Recipe saved successfully"})
         return jsonify({"status": "error", "message": "Failed to save recipe"}), 500
     except Exception as e:
