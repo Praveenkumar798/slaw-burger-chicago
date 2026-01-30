@@ -7,6 +7,24 @@ from datetime import datetime, timedelta
 import time
 from src.database import get_connection
 
+# Load .env file if it exists (for local development)
+def load_env_file():
+    """Load .env file if it exists"""
+    env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        if key not in os.environ:
+                            os.environ[key] = value
+        except Exception:
+            pass
+
+load_env_file()
+
 # --- Configuration & Credentials ---
 CREDENTIALS = {
     "CLIENT_ID": "",
@@ -17,9 +35,17 @@ CREDENTIALS = {
 
 # File Paths - Use absolute paths to avoid issues when running from different CWD
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CREDENTIALS_FILE = os.path.join(BASE_DIR, 'logs', 'toast_credentials.txt')
-LAST_SYNC_FILE = os.path.join(BASE_DIR, 'logs', 'last_sync_time.txt')
-LOG_FILE = os.path.join(BASE_DIR, 'logs', 'inventory_log.txt')
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+CREDENTIALS_FILE = os.path.join(LOGS_DIR, 'toast_credentials.txt')
+LAST_SYNC_FILE = os.path.join(LOGS_DIR, 'last_sync_time.txt')
+LOG_FILE = os.path.join(LOGS_DIR, 'inventory_log.txt')
+
+# Ensure logs directory exists on startup
+if not os.path.exists(LOGS_DIR):
+    try:
+        os.makedirs(LOGS_DIR, exist_ok=True)
+    except Exception:
+        pass
 
 def log(message):
     """Log messages to console and file"""
@@ -30,9 +56,11 @@ def log(message):
     except Exception:
         pass # specific environment might have issues with stdout
     
-    LOG_DIR = os.path.join(BASE_DIR, 'logs')
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
+    if not os.path.exists(LOGS_DIR):
+        try:
+            os.makedirs(LOGS_DIR, exist_ok=True)
+        except Exception:
+            return
     try:
         with open(LOG_FILE, 'a', encoding='utf-8') as f:
             f.write(entry + "\n")
@@ -51,28 +79,27 @@ def load_credentials():
             creds[key] = env_value
     
     # Then try to load from file (for local development)
-    if os.path.exists(CREDENTIALS_FILE):
-        try:
+    try:
+        if os.path.exists(CREDENTIALS_FILE):
             with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
                 for line in f:
                     line = line.strip()
-                    if '=' in line:
+                    if '=' in line and not line.startswith('#'):
                         key, value = line.split('=', 1)
                         if key in env_keys:
-                            # File values override if not already set from env vars
+                            # File values only used if not already set from env vars
                             if not os.getenv(key):
                                 creds[key] = value
-        except Exception as e:
-            log(f"Error reading credentials file: {e}")
+    except Exception as e:
+        log(f"Error reading credentials file: {e}")
     
     return creds
 
 def save_credentials(creds):
     """Save updated credentials back to file"""
     try:
-        LOG_DIR = os.path.join(BASE_DIR, 'logs')
-        if not os.path.exists(LOG_DIR):
-            os.makedirs(LOG_DIR)
+        if not os.path.exists(LOGS_DIR):
+            os.makedirs(LOGS_DIR, exist_ok=True)
         with open(CREDENTIALS_FILE, 'w', encoding='utf-8') as f:
             for key in ["CLIENT_ID", "CLIENT_SECRET", "RESTAURANT_GUID", "ACCESS_TOKEN", "MANAGEMENT_GROUP_GUID"]:
                 if key in creds and creds[key]:
@@ -80,6 +107,7 @@ def save_credentials(creds):
         return True
     except Exception as e:
         log(f"Error saving credentials: {e}")
+        return False
         return False
 
 def refresh_access_token(creds):

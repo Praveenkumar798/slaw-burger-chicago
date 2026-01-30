@@ -37,13 +37,22 @@ def manage_credentials():
     if request.method == 'GET':
         # Return credential status (without exposing actual values)
         creds = toast_api.load_credentials()
-        return jsonify({
+        status = {
             "has_client_id": bool(creds.get("CLIENT_ID")),
             "has_client_secret": bool(creds.get("CLIENT_SECRET")),
             "has_restaurant_guid": bool(creds.get("RESTAURANT_GUID")),
             "has_access_token": bool(creds.get("ACCESS_TOKEN")),
-            "has_management_group_guid": bool(creds.get("MANAGEMENT_GROUP_GUID"))
-        })
+            "has_management_group_guid": bool(creds.get("MANAGEMENT_GROUP_GUID")),
+            "from_env_vars": {
+                "CLIENT_ID": bool(os.getenv("CLIENT_ID")),
+                "CLIENT_SECRET": bool(os.getenv("CLIENT_SECRET")),
+                "RESTAURANT_GUID": bool(os.getenv("RESTAURANT_GUID")),
+                "ACCESS_TOKEN": bool(os.getenv("ACCESS_TOKEN")),
+                "MANAGEMENT_GROUP_GUID": bool(os.getenv("MANAGEMENT_GROUP_GUID"))
+            }
+        }
+        print(f"[DEBUG] Credentials status: {status}")
+        return jsonify(status)
     
     elif request.method in ['POST', 'PUT']:
         # Update credentials

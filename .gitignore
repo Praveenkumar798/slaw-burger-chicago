@@ -26,6 +26,7 @@ wheels/
 *.swp
 *.swo
 .DS_Store
+.env
 logs/inventory_log.txt
 logs/last_sync_time.txt
 *.log
