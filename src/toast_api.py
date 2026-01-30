@@ -42,6 +42,15 @@ def log(message):
 
 def load_credentials():
     creds = CREDENTIALS.copy()
+    
+    # First try to load from environment variables (for production/cloud deployment)
+    env_keys = ["CLIENT_ID", "CLIENT_SECRET", "RESTAURANT_GUID", "ACCESS_TOKEN", "MANAGEMENT_GROUP_GUID"]
+    for key in env_keys:
+        env_value = os.getenv(key)
+        if env_value:
+            creds[key] = env_value
+    
+    # Then try to load from file (for local development)
     if os.path.exists(CREDENTIALS_FILE):
         try:
             with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
@@ -49,8 +58,10 @@ def load_credentials():
                     line = line.strip()
                     if '=' in line:
                         key, value = line.split('=', 1)
-                        if key in ["CLIENT_ID", "CLIENT_SECRET", "RESTAURANT_GUID", "ACCESS_TOKEN", "MANAGEMENT_GROUP_GUID"]:
-                            creds[key] = value
+                        if key in env_keys:
+                            # File values override if not already set from env vars
+                            if not os.getenv(key):
+                                creds[key] = value
         except Exception as e:
             log(f"Error reading credentials file: {e}")
     
