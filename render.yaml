@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: slaw-burger-chicago
+    runtime: python
+    pythonVersion: 3.12
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: GCS_BUCKET_NAME
+        value: inventory-slawburger
