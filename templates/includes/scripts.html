@@ -1,0 +1,1050 @@
+<!-- MAIN SCRIPT -->
+<script>
+    feather.replace();
+
+    // Initialize stock bars
+    document.querySelectorAll('.stock-bar').forEach(bar => {
+        bar.style.width = bar.dataset.width + '%';
+        bar.style.backgroundColor = bar.dataset.color;
+    });
+
+    // --- NAVIGATION SCROLL LOGIC ---
+    function scrollNav(direction) {
+        const nav = document.getElementById('main-nav');
+        if (!nav) return;
+
+        const scrollAmount = 200; // pixels to scroll
+        const currentScroll = nav.scrollLeft;
+
+        if (direction === 'left') {
+            nav.scrollLeft = currentScroll - scrollAmount;
+        } else {
+            nav.scrollLeft = currentScroll + scrollAmount;
+        }
+
+        // Update arrow visibility after scroll
+        setTimeout(updateNavArrows, 100);
+    }
+
+    function updateNavArrows() {
+        const nav = document.getElementById('main-nav');
+        const leftArrow = document.getElementById('nav-scroll-left');
+        const rightArrow = document.getElementById('nav-scroll-right');
+
+        if (!nav || !leftArrow || !rightArrow) return;
+
+        // Check if scrolling is needed at all
+        const isScrollable = nav.scrollWidth > nav.clientWidth;
+
+        if (!isScrollable) {
+            // Hide both arrows if no scrolling is needed
+            leftArrow.classList.add('opacity-0', 'pointer-events-none');
+            rightArrow.classList.add('opacity-0', 'pointer-events-none');
+            return;
+        }
+
+        const isAtStart = nav.scrollLeft <= 5;
+        const isAtEnd = nav.scrollLeft >= (nav.scrollWidth - nav.clientWidth - 5);
+
+        // Show/hide left arrow
+        if (isAtStart) {
+            leftArrow.classList.add('opacity-0', 'pointer-events-none');
+        } else {
+            leftArrow.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        // Show/hide right arrow
+        if (isAtEnd) {
+            rightArrow.classList.add('opacity-0', 'pointer-events-none');
+        } else {
+            rightArrow.classList.remove('opacity-0', 'pointer-events-none');
+        }
+    }
+
+    // Initialize navigation arrows on load and resize
+    window.addEventListener('load', () => {
+        updateNavArrows();
+        feather.replace();
+    });
+
+    window.addEventListener('resize', updateNavArrows);
+
+    // Update arrows when nav is scrolled
+    const mainNav = document.getElementById('main-nav');
+    if (mainNav) {
+        mainNav.addEventListener('scroll', updateNavArrows);
+    }
+
+    // --- TAB LOGIC ---
+    function switchTab(tabId) {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        });
+        document.querySelectorAll('.nav-btn').forEach(el => {
+            el.classList.remove('active', 'bg-accent-blue', 'text-white', 'shadow-lg', 'shadow-accent-blue/20');
+            el.classList.add('text-slate-500', 'dark:text-slate-400', 'bg-transparent');
+        });
+
+        // Show selected
+        const activeTab = document.getElementById('tab-' + tabId);
+        if (activeTab) {
+            activeTab.classList.remove('hidden');
+            activeTab.classList.add('flex');
+        }
+
+        // Highlight nav button
+        const navBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+        if (navBtn) {
+            navBtn.classList.add('active', 'bg-accent-blue', 'text-white', 'shadow-lg', 'shadow-accent-blue/20');
+            navBtn.classList.remove('text-slate-500', 'dark:text-slate-400', 'bg-transparent');
+        }
+
+        // Persist tab
+        localStorage.setItem('activeTab', tabId);
+
+        if (tabId === 'history') loadHistory();
+        if (tabId === 'receive') loadDeliveryHistoryInTab();
+        if (tabId === 'recipes' && fullMenuData.length === 0) loadMenuFromDatabase();
+    }
+
+    // --- GOODS IN TAB LOGIC ---
+    let stagedItems = [];
+
+    function addToStaging() {
+        const sel = document.getElementById('recv_ingredient');
+        const qtyInput = document.getElementById('recv_quantity');
+        const costInput = document.getElementById('recv_cost');
+
+        if (!sel || sel.selectedIndex === -1) return;
+
+        const option = sel.options[sel.selectedIndex];
+        const id = option.value;
+        let name = option.text;
+        const unit = option.dataset.unit || '';
+        const qty = parseFloat(qtyInput.value);
+        const cost = costInput.value ? parseFloat(costInput.value) : null;
+
+        if (!id || isNaN(qty) || qty <= 0) {
+            alert("Please select an ingredient and enter a valid quantity.");
+            return;
+        }
+
+        if (name.includes('(')) {
+            name = name.split(' (')[0];
+        }
+
+        stagedItems.push({
+            ingredient_id: id,
+            ingredient_name: name,
+            quantity: qty,
+            unit_cost: cost ? (cost / qty) : null,
+            total_cost: cost,
+            unit: unit
+        });
+
+        sel.value = "";
+        qtyInput.value = "";
+        costInput.value = "";
+
+        renderStagedTable();
+    }
+
+    function removeFromStaging(index) {
+        stagedItems.splice(index, 1);
+        renderStagedTable();
+    }
+
+    function renderStagedTable() {
+        const table = document.getElementById('staged-table');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        if (stagedItems.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400 font-medium">No items added to this receipt yet.</td></tr>';
+            return;
+        }
+
+        let rows = '';
+        stagedItems.forEach((item, idx) => {
+            const costDisplay = item.total_cost ? `$${item.total_cost.toFixed(2)}` : '-';
+            rows += `
+                <tr class="border-b border-slate-100 dark:border-white/5">
+                    <td class="px-4 py-3 font-medium">${item.ingredient_name}</td>
+                    <td class="px-4 py-3">${item.quantity} ${item.unit || ''}</td>
+                    <td class="px-4 py-3">${costDisplay}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-accent-red hover:scale-110 transition-transform" onclick="removeFromStaging(${idx})">
+                            <i data-feather="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = rows;
+        feather.replace();
+    }
+
+    async function submitBulkReceipt() {
+        if (stagedItems.length === 0) {
+            alert("Please add items to the receipt first.");
+            return;
+        }
+
+        const btn = document.getElementById('btn-submit-receipt');
+        const msg = document.getElementById('recv-message');
+        const supplier = document.getElementById('recv_supplier').value;
+        const invoice = document.getElementById('recv_invoice').value;
+
+        const payloadItems = stagedItems.map(i => ({
+            ingredient_id: i.ingredient_id,
+            quantity: i.quantity,
+            unit_cost: i.unit_cost,
+            supplier: supplier,
+            invoice_number: invoice,
+            notes: "Bulk Entry"
+        }));
+
+        btn.disabled = true;
+        btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 animate-spin"></i> Processing...`;
+
+        try {
+            const res = await fetch('/api/receive/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: payloadItems })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success' || data.status === 'warning') {
+                window.location.reload();
+            } else {
+                msg.innerHTML = `<span class="text-accent-red font-bold">⚠ ${data.message}</span>`;
+            }
+        } catch (err) {
+            msg.innerHTML = `<span class="text-accent-red font-bold">Error: ${err.message}</span>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-feather="check" class="w-6 h-6"></i> Confirm Receipt`;
+            feather.replace();
+        }
+    }
+
+    async function loadDeliveryHistoryInTab() {
+        const container = document.getElementById('goods-in-history');
+        if (!container) return;
+        container.innerHTML = '<div class="p-8 text-center text-slate-400 font-medium animate-pulse">Loading...</div>';
+
+        try {
+            const res = await fetch('/api/history');
+            const data = await res.json();
+
+            if (!data.deliveries || data.deliveries.length === 0) {
+                container.innerHTML = '<div class="p-8 text-center text-slate-400 font-medium">No recent receipts found.</div>';
+                return;
+            }
+
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                                <th class="px-4 py-3">Date</th>
+                                <th class="px-4 py-3">Item</th>
+                                <th class="px-4 py-3">Qty</th>
+                                <th class="px-4 py-3">Supplier</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+            `;
+
+            data.deliveries.forEach(d => {
+                const date = new Date(d.timestamp).toLocaleDateString();
+                html += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td class="px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400">${date}</td>
+                        <td class="px-4 py-3 text-sm font-bold">${d.ingredient_name}</td>
+                        <td class="px-4 py-3 text-sm font-black text-accent-green">+${d.quantity_received} ${d.unit}</td>
+                        <td class="px-4 py-3 text-sm text-slate-500 dark:text-slate-400 italic">${d.supplier || '-'}</td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+
+        } catch (e) {
+            container.innerHTML = '<div class="p-8 text-center text-accent-red font-bold">Error loading history</div>';
+        }
+    }
+
+    // --- ADJUSTMENT FORM ---
+    function toggleAdjMode() {
+        const isAdd = document.querySelector('input[name="adj_type"]:checked').value === 'Addition';
+        const qtyLabel = document.getElementById('qty-label');
+        const submitBtn = document.getElementById('adj-submit-btn');
+
+        document.querySelectorAll('.adj-type-btn').forEach(el => {
+            el.classList.remove('active', 'bg-accent-red/20', 'text-accent-red', 'bg-accent-green/20', 'text-accent-green', 'bg-white', 'dark:bg-white/10', 'shadow-sm');
+        });
+
+        if (isAdd) {
+            const btn = document.getElementById('btn-add');
+            btn.classList.add('active', 'bg-accent-green/20', 'text-accent-green', 'shadow-sm');
+            qtyLabel.innerText = "Quantity to Add";
+            submitBtn.classList.remove('bg-accent-red', 'shadow-accent-red/20');
+            submitBtn.classList.add('bg-accent-green', 'shadow-accent-green/20');
+        } else {
+            const btn = document.getElementById('btn-deduct');
+            btn.classList.add('active', 'bg-accent-red/20', 'text-accent-red', 'shadow-sm');
+            qtyLabel.innerText = "Quantity to Deduct";
+            submitBtn.classList.remove('bg-accent-green', 'shadow-accent-green/20');
+            submitBtn.classList.add('bg-accent-red', 'shadow-accent-red/20');
+        }
+    }
+
+    document.getElementById('wasteForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        const msg = document.getElementById('waste-message');
+        const type = document.querySelector('input[name="adj_type"]:checked').value;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 animate-spin"></i> Processing...`;
+
+        try {
+            const res = await fetch('/api/adjust', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ingredient_id: document.getElementById('waste_ingredient').value,
+                    quantity: document.getElementById('waste_quantity').value,
+                    reason: document.getElementById('waste_reason').value,
+                    staff: document.getElementById('waste_staff').value,
+                    notes: document.getElementById('waste_notes').value,
+                    type: type
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                msg.innerHTML = `<span class="text-accent-red font-bold">⚠ ${data.message}</span>`;
+            }
+        } catch (err) {
+            msg.innerHTML = `<span class="text-accent-red font-bold">Error: ${err.message}</span>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Log Adjustment";
+            feather.replace();
+        }
+    });
+
+    // --- LOAD HISTORY ---
+    async function loadHistory() {
+        try {
+            const res = await fetch('/api/history');
+            const data = await res.json();
+
+            const delList = document.getElementById('delivery-list');
+            delList.innerHTML = data.deliveries.length ? '' : '<div class="p-8 text-center text-slate-400 font-medium">No recent deliveries</div>';
+            data.deliveries.forEach(d => {
+                delList.innerHTML += `
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:shadow-md transition-all">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-base font-bold text-slate-800 dark:text-slate-100">${d.ingredient_name}</span>
+                            <span class="text-sm font-black text-accent-green">+${d.quantity_received} ${d.unit}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            <i data-feather="calendar" class="w-3 h-3"></i> ${new Date(d.timestamp).toLocaleString()}
+                            <span class="mx-1 opacity-20">|</span>
+                            <i data-feather="truck" class="w-3 h-3"></i> ${d.supplier || 'No Supplier'}
+                        </div>
+                    </div>
+                `;
+            });
+
+            const wasteList = document.getElementById('waste-list');
+            wasteList.innerHTML = data.waste.length ? '' : '<div class="p-8 text-center text-slate-400 font-medium">No recent adjustments</div>';
+            data.waste.forEach(w => {
+                const type = w.type || 'Deduction';
+                const sign = type === 'Addition' ? '+' : '-';
+                const colorClass = type === 'Addition' ? 'text-accent-green' : 'text-accent-red';
+
+                wasteList.innerHTML += `
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 hover:shadow-md transition-all border-l-4 ${type === 'Addition' ? 'border-l-accent-green' : 'border-l-accent-red'}">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-base font-bold text-slate-800 dark:text-slate-100">${w.ingredient_name}</span>
+                            <span class="text-sm font-black ${colorClass}">${sign}${w.quantity} ${w.unit}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                            <i data-feather="calendar" class="w-3 h-3"></i> ${new Date(w.timestamp).toLocaleString()}
+                            <span class="mx-1 opacity-20">|</span>
+                            <i data-feather="tag" class="w-3 h-3"></i> ${w.reason}
+                        </div>
+                    </div>
+                `;
+            });
+            feather.replace();
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // --- ITEM MODAL LOGIC ---
+    function openItemModal(item = null) {
+        const modal = document.getElementById('item-modal');
+        const content = modal.querySelector('.modal-content');
+        const form = document.getElementById('itemForm');
+        const title = document.getElementById('modal-title');
+
+        if (item) {
+            title.innerText = "Edit Item";
+            document.getElementById('item_id').value = item.id;
+            document.getElementById('item_name').value = item.name;
+            document.getElementById('item_category').value = item.category;
+            document.getElementById('item_unit').value = item.unit;
+            document.getElementById('item_threshold').value = item.low_stock_threshold;
+            document.getElementById('item_cost').value = item.cost_per_unit || '';
+            document.getElementById('item_stock').value = item.current_stock;
+        } else {
+            title.innerText = "New Item";
+            if (form) form.reset();
+            document.getElementById('item_id').value = '';
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeItemModal() {
+        const modal = document.getElementById('item-modal');
+        const content = modal.querySelector('.modal-content');
+        if (!content) return;
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    function openSyncModal() {
+        const modal = document.getElementById('sync-modal');
+        const content = modal.querySelector('.modal-content');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeSyncModal() {
+        const modal = document.getElementById('sync-modal');
+        const content = modal.querySelector('.modal-content');
+        if (!content) return;
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+
+    const itemForm = document.getElementById('itemForm');
+    if (itemForm) {
+        itemForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('item_id').value;
+            const isEdit = !!id;
+
+            const payload = {
+                name: document.getElementById('item_name').value,
+                category: document.getElementById('item_category').value,
+                unit: document.getElementById('item_unit').value,
+                threshold: document.getElementById('item_threshold').value,
+                cost_per_unit: document.getElementById('item_cost').value,
+                current_stock: document.getElementById('item_stock').value
+            };
+
+            const url = isEdit ? `/api/ingredients/${id}` : '/api/ingredients';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+    }
+
+    // Modal Background Click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                if (overlay.id === 'item-modal') closeItemModal();
+                if (overlay.id === 'sync-modal') closeSyncModal();
+            }
+        });
+    });
+
+    // --- RECIPE MANAGEMENT LOGIC ---
+    let currentRecipeGuid = null;
+    let currentRecipeItems = [];
+    let fullMenuData = [];
+    let allRecipes = {};
+    const recipesDataEl = document.getElementById('recipes-data');
+    if (recipesDataEl) {
+        allRecipes = JSON.parse(recipesDataEl.textContent);
+    }
+
+    async function loadMenuFromDatabase() {
+        const list = document.getElementById('toast-menu-list');
+        if (!list) return;
+        list.innerHTML = '<div class="p-8 text-center text-slate-400 font-medium animate-pulse">Loading menu items...</div>';
+
+        try {
+            const res = await fetch('/api/menu/local');
+            if (!res.ok) {
+                loadMenuFromRecipes();
+                return;
+            }
+
+            const data = await res.json();
+            if (data.status === 'error') {
+                loadMenuFromRecipes();
+                return;
+            }
+
+            fullMenuData = data.menu_items || [];
+            if (fullMenuData.length === 0) {
+                loadMenuFromRecipes();
+                return;
+            }
+
+            renderMenu(fullMenuData);
+            feather.replace();
+        } catch (e) {
+            console.error('loadMenuFromDatabase error:', e);
+            loadMenuFromRecipes();
+        }
+    }
+
+    function loadMenuFromRecipes() {
+        const list = document.getElementById('toast-menu-list');
+        if (!list) return;
+        fullMenuData = [];
+
+        for (const guid in allRecipes) {
+            fullMenuData.push({
+                guid: guid,
+                name: `Menu Item ${guid.substring(0, 8)}...`
+            });
+        }
+
+        if (fullMenuData.length === 0) {
+            list.innerHTML = '<div class="p-8 text-center text-slate-400 font-medium">No menu items found. Populate Master_Data.xlsx and run management helper.</div>';
+            return;
+        }
+
+        renderMenu(fullMenuData);
+        feather.replace();
+    }
+
+    function showMenuDropdown() {
+        const dropdown = document.getElementById('menu-dropdown');
+        if (dropdown) dropdown.classList.remove('hidden');
+    }
+
+    function hideMenuDropdown() {
+        const dropdown = document.getElementById('menu-dropdown');
+        if (dropdown) dropdown.classList.add('hidden');
+    }
+
+    // Close dropdown on click outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('menu-dropdown');
+        const searchInput = document.getElementById('menu-search');
+        if (dropdown && !dropdown.contains(e.target) && e.target !== searchInput) {
+            hideMenuDropdown();
+        }
+    });
+
+    function filterMenuDropdown() {
+        const term = document.getElementById('menu-search').value.toLowerCase();
+        const filtered = fullMenuData.filter(i => i.name.toLowerCase().includes(term));
+        renderMenu(filtered);
+        showMenuDropdown();
+    }
+
+    function renderMenu(items) {
+        const list = document.getElementById('toast-menu-list');
+        if (!list) return;
+        if (items.length === 0) {
+            list.innerHTML = '<div class="p-4 text-center text-slate-400 text-xs font-bold">No results</div>';
+            return;
+        }
+
+        list.innerHTML = items.map(item => {
+            const hasRecipe = allRecipes[item.guid] ? '<i data-feather="link" class="w-3 h-3 text-accent-green"></i>' : '';
+            const itemData = JSON.stringify(item).replace(/'/g, "&apos;");
+            return `
+                <div class="menu-item-row group p-3 rounded-xl cursor-pointer transition-all hover:bg-slate-100 dark:hover:bg-white/10 flex justify-between items-center" data-item='${itemData}' onclick="editRecipeByElement(this)">
+                    <div>
+                        <div class="text-xs font-bold group-hover:text-accent-blue transition-colors">${item.name}</div>
+                        <div class="text-[9px] font-mono text-slate-400 mt-0.5">${item.guid.substring(0, 13)}...</div>
+                    </div>
+                    ${hasRecipe}
+                </div>
+            `;
+        }).join('');
+        feather.replace();
+    }
+
+    function editRecipeByElement(el) {
+        const item = JSON.parse(el.dataset.item);
+        editRecipe(item.guid, item.name);
+    }
+
+    function editRecipe(guid, name) {
+        currentRecipeGuid = guid;
+        const emptyState = document.getElementById('builder-empty');
+        const activeState = document.getElementById('builder-active');
+        const statusHeader = document.getElementById('active-item-status');
+        const searchInput = document.getElementById('menu-search');
+
+        if (emptyState) emptyState.classList.add('hidden');
+        if (activeState) activeState.classList.remove('hidden');
+        if (statusHeader) statusHeader.classList.remove('hidden');
+        if (statusHeader) statusHeader.classList.add('flex');
+
+        if (searchInput) {
+            searchInput.value = name;
+            hideMenuDropdown();
+        }
+
+        document.getElementById('current-item-name').innerText = name;
+        document.getElementById('current-item-guid').innerText = guid;
+
+        currentRecipeItems = allRecipes[guid] ? [...allRecipes[guid]] : [];
+        renderRecipeTable();
+    }
+
+    function renderRecipeTable() {
+        const tbody = document.querySelector('#recipe-table tbody');
+        if (!tbody) return;
+        if (currentRecipeItems.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="4" class="px-4 py-8 text-center text-slate-400 font-medium">No ingredients linked</td></tr>';
+            return;
+        }
+
+        const ingredientsDataEl = document.getElementById('ingredients-data');
+        const allIngs = JSON.parse(ingredientsDataEl.textContent);
+
+        tbody.innerHTML = currentRecipeItems.map((item, idx) => {
+            const ing = allIngs.find(i => i.id === item.ingredient_id);
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                    <td class="px-4 py-3 text-sm font-bold text-slate-800 dark:text-slate-100">${ing ? ing.name : 'Unknown'}</td>
+                    <td class="px-4 py-3">
+                        <input type="number" step="0.01" value="${item.quantity}" 
+                            onchange="updateRecipeQty(${idx}, this.value)" 
+                            class="w-20 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1 text-sm font-bold focus:ring-1 focus:ring-accent-blue outline-none">
+                    </td>
+                    <td class="px-4 py-3 text-sm font-medium text-slate-500">${ing ? ing.unit : '-'}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-accent-red hover:scale-110 transition-transform" onclick="removeRecipeIng(${idx})">
+                            <i data-feather="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        feather.replace();
+    }
+
+    const unitConversions = {
+        'lb': { 'lb': 1, 'oz': 1 / 16, 'kg': 2.20462, 'g': 0.00220462 },
+        'lbs': { 'lbs': 1, 'oz': 1 / 16, 'kg': 2.20462, 'g': 0.00220462 },
+        'oz': { 'oz': 1, 'lb': 16, 'g': 0.035274 },
+        'gal': { 'gal': 1, 'oz': 1 / 128, 'cup': 1 / 16, 'L': 0.264172 },
+        'gallon': { 'gallon': 1, 'oz': 1 / 128, 'cup': 1 / 16, 'L': 0.264172 },
+        'kg': { 'kg': 1, 'g': 0.001, 'lb': 0.453592 },
+        'g': { 'g': 1, 'kg': 1000, 'oz': 28.3495 },
+        'L': { 'L': 1, 'ml': 0.001, 'gal': 3.78541 },
+        'ml': { 'ml': 1, 'L': 1000, 'oz': 29.5735 }
+    };
+
+    function updateUnitOptions() {
+        const sel = document.getElementById('recipe_ing_select');
+        const unitSel = document.getElementById('recipe_ing_unit');
+        if (!sel || !unitSel) return;
+        const option = sel.options[sel.selectedIndex];
+
+        unitSel.innerHTML = '';
+        unitSel.disabled = true;
+        unitSel.classList.add('opacity-50');
+
+        if (!option || !option.value) {
+            unitSel.innerHTML = '<option value="base">Unit</option>';
+            return;
+        }
+
+        const baseUnit = option.dataset.unit || 'unit';
+        const baseKey = baseUnit.toLowerCase().replace(/s$/, '');
+
+        unitSel.innerHTML = `<option value="1">${baseUnit}</option>`;
+        unitSel.disabled = false;
+        unitSel.classList.remove('opacity-50');
+
+        let conv = null;
+        if (unitConversions[baseUnit]) conv = unitConversions[baseUnit];
+        else if (unitConversions[baseKey]) conv = unitConversions[baseKey];
+        else if (baseKey === 'pound') conv = unitConversions['lb'];
+        else if (baseKey === 'ounce') conv = unitConversions['oz'];
+
+        if (conv) {
+            for (const [unit, factor] of Object.entries(conv)) {
+                if (unit !== baseUnit && unit !== baseKey) {
+                    unitSel.innerHTML += `<option value="${factor}">${unit}</option>`;
+                }
+            }
+        }
+    }
+
+    function addIngredientToRecipe() {
+        const sel = document.getElementById('recipe_ing_select');
+        const qtyInput = document.getElementById('recipe_ing_qty');
+        const unitSel = document.getElementById('recipe_ing_unit');
+        const msg = document.getElementById('recipe-msg');
+
+        const rawQty = parseFloat(qtyInput.value);
+        const conversionFactor = parseFloat(unitSel.value) || 1;
+
+        // Validation with user feedback
+        if (!sel.value) {
+            msg.innerHTML = '<span class="text-accent-red font-bold text-sm">⚠ Please select an ingredient</span>';
+            setTimeout(() => msg.innerHTML = '', 3000);
+            return;
+        }
+
+        if (isNaN(rawQty) || rawQty <= 0) {
+            msg.innerHTML = '<span class="text-accent-red font-bold text-sm">⚠ Please enter a valid quantity</span>';
+            setTimeout(() => msg.innerHTML = '', 3000);
+            return;
+        }
+
+        const finalQty = rawQty * conversionFactor;
+        currentRecipeItems.push({
+            ingredient_id: sel.value,
+            quantity: parseFloat(finalQty.toFixed(4))
+        });
+
+        sel.value = "";
+        qtyInput.value = "";
+        unitSel.innerHTML = '<option value="base">Unit</option>';
+        unitSel.disabled = true;
+        unitSel.classList.add('opacity-50');
+
+        msg.innerHTML = '<span class="text-accent-green font-bold text-sm">✓ Ingredient added</span>';
+        setTimeout(() => msg.innerHTML = '', 2000);
+
+        renderRecipeTable();
+    }
+
+    function removeRecipeIng(idx) {
+        currentRecipeItems.splice(idx, 1);
+        renderRecipeTable();
+    }
+
+    function updateRecipeQty(idx, val) {
+        currentRecipeItems[idx].quantity = parseFloat(val);
+    }
+
+    async function saveRecipe() {
+        const btn = document.querySelector('#builder-active button[onclick="saveRecipe()"]');
+        const msg = document.getElementById('recipe-msg');
+        if (!btn) return;
+
+        // Check if a recipe is selected
+        if (!currentRecipeGuid) {
+            msg.innerHTML = '<span class="text-accent-red font-bold text-sm">⚠ Please select a menu item first</span>';
+            setTimeout(() => msg.innerHTML = '', 3000);
+            return;
+        }
+
+        // Check if there are ingredients to save
+        if (currentRecipeItems.length === 0) {
+            msg.innerHTML = '<span class="text-accent-red font-bold text-sm">⚠ Please add at least one ingredient</span>';
+            setTimeout(() => msg.innerHTML = '', 3000);
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i data-feather="loader" class="w-5 h-5 animate-spin"></i> Saving...`;
+        feather.replace();
+
+        try {
+            const res = await fetch('/api/recipes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    menu_guid: currentRecipeGuid,
+                    components: currentRecipeItems
+                })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                allRecipes[currentRecipeGuid] = [...currentRecipeItems];
+                msg.innerHTML = '<span class="text-accent-green font-bold text-sm">✓ Saved Successfully</span>';
+                renderMenu(fullMenuData);
+                setTimeout(() => msg.innerHTML = '', 3000);
+            } else {
+                msg.innerHTML = `<span class="text-accent-red font-bold text-sm">⚠ ${data.message}</span>`;
+                setTimeout(() => msg.innerHTML = '', 5000);
+            }
+        } catch (e) {
+            msg.innerHTML = '<span class="text-accent-red font-bold text-sm">⚠ Connection error. Please try again.</span>';
+            setTimeout(() => msg.innerHTML = '', 5000);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Save";
+            feather.replace();
+        }
+    }
+
+    async function deleteCurrentRecipe() {
+        if (!confirm("Are you sure you want to delete this recipe?")) return;
+
+        try {
+            const res = await fetch(`/api/recipes/${currentRecipeGuid}`, { method: 'DELETE' });
+            if (res.ok) {
+                delete allRecipes[currentRecipeGuid];
+                currentRecipeItems = [];
+                renderRecipeTable();
+                renderMenu(fullMenuData);
+                document.getElementById('recipe-msg').innerHTML = '<span class="text-accent-red font-bold text-sm">Recipe Cleared</span>';
+                setTimeout(() => cancelEdit(), 2000);
+            }
+        } catch (e) { alert('Delete error'); }
+    }
+
+    function cancelEdit() {
+        currentRecipeGuid = null;
+        currentRecipeItems = [];
+
+        const emptyState = document.getElementById('builder-empty');
+        const activeState = document.getElementById('builder-active');
+        const statusHeader = document.getElementById('active-item-status');
+        const searchInput = document.getElementById('menu-search');
+
+        if (emptyState) emptyState.classList.remove('hidden');
+        if (activeState) activeState.classList.add('hidden');
+        if (statusHeader) statusHeader.classList.add('hidden');
+        if (searchInput) searchInput.value = '';
+
+        document.getElementById('recipe-msg').innerHTML = '';
+        hideMenuDropdown();
+    }
+
+    async function triggerToastSync() {
+        const btn = document.getElementById('toast-sync-btn');
+        if (!btn) return;
+        const originalContent = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i data-feather="loader" class="w-4 h-4 animate-spin"></i> Checking Sales...`;
+        feather.replace();
+
+        try {
+            const res = await fetch('/api/sync/toast', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                if (data.preview) {
+                    showSyncModal(data);
+                } else {
+                    alert(data.message);
+                    if (data.new_orders !== 0) window.location.reload();
+                }
+            } else {
+                alert('Sync Error: ' + (data.message || 'Unknown error'));
+            }
+        } catch (err) {
+            alert('Connection Error: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalContent;
+            feather.replace();
+        }
+    }
+
+    function showSyncModal(data) {
+        const content = document.getElementById('sync-content');
+        if (!content) return;
+
+        let html = `
+            <div class="p-6 rounded-2xl bg-accent-blue/10 border border-accent-blue/20 mb-6">
+                <div class="text-lg font-black text-accent-blue mb-1">${data.new_orders} New Orders</div>
+                <div class="text-sm font-medium text-slate-500">Calculated inventory deductions based on active recipes.</div>
+            </div>
+            
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 ml-1">Proposed Deductions</h3>
+            <div class="rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden mb-8">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-[10px] font-bold uppercase bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-slate-500">
+                            <th class="px-4 py-3">Ingredient</th>
+                            <th class="px-4 py-3">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-white/5">
+        `;
+
+        data.deductions.forEach(d => {
+            html += `
+                <tr>
+                    <td class="px-4 py-3 text-sm font-bold">${d.name}</td>
+                    <td class="px-4 py-3 text-sm font-black text-accent-red">-${d.quantity} ${d.unit}</td>
+                </tr>`;
+        });
+
+        if (data.deductions.length === 0) {
+            html += '<tr><td colspan="2" class="p-8 text-center text-slate-400 font-medium">No deductions mapped</td></tr>';
+        }
+
+        html += `
+                    </tbody>
+                </table>
+            </div>
+            
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 ml-1">Included Orders</h3>
+            <div class="flex flex-col gap-2">
+        `;
+
+        data.orders.slice(0, 10).forEach(o => {
+            html += `
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-white/5 flex justify-between items-center text-sm border border-transparent hover:border-slate-200 transition-all">
+                    <span class="font-bold">#${o.orderNumber || '??'} <span class="text-slate-400 font-medium ml-2">${o.items.map(i => i.name).join(', ')}</span></span>
+                    <span class="font-black text-accent-blue">$${o.totalAmount}</span>
+                </div>
+            `;
+        });
+
+        if (data.orders.length > 10) {
+            html += `<div class="p-4 text-center text-xs font-bold text-slate-400 italic mb-4">...and ${data.orders.length - 10} more orders</div>`;
+        }
+
+        html += `</div>`;
+        content.innerHTML = html;
+        openSyncModal();
+    }
+
+    async function confirmToastSync() {
+        const btn = document.getElementById('confirm-sync-btn');
+        if (!btn) return;
+        const originalText = btn.innerText;
+
+        btn.disabled = true;
+        btn.innerText = "Syncing Orders...";
+
+        try {
+            const res = await fetch('/api/sync/toast/confirm', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        } catch (err) {
+            alert('Connection Error: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+
+    async function deleteIngredient(id, name) {
+        if (!confirm(`Are you sure you want to delete "${name}"? This will also remove it from any recipes.`)) return;
+
+        try {
+            const res = await fetch(`/api/ingredients/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (err) { alert('Connection Error'); }
+    }
+
+    function filterInventory() {
+        const searchTerm = document.getElementById('inventory-search').value.toLowerCase();
+        const categoryFilter = document.getElementById('inventory-category-filter').value;
+        const lowStockOnly = document.getElementById('low-stock-only').checked;
+
+        const sections = document.querySelectorAll('.inventory-section');
+
+        sections.forEach(section => {
+            const cards = section.querySelectorAll('.inventory-card');
+            let visibleCardsInSection = 0;
+
+            cards.forEach(card => {
+                const cardName = card.dataset.name;
+                const cardCategory = card.dataset.category;
+                const isLowStock = card.dataset.lowStock === 'true';
+
+                const matchesSearch = cardName.includes(searchTerm);
+                const matchesCategory = categoryFilter === 'all' || cardCategory === categoryFilter;
+                const matchesLowStock = !lowStockOnly || isLowStock;
+
+                if (matchesSearch && matchesCategory && matchesLowStock) {
+                    card.classList.remove('hidden');
+                    card.classList.add('block');
+                    visibleCardsInSection++;
+                } else {
+                    card.classList.add('hidden');
+                    card.classList.remove('block');
+                }
+            });
+
+            if (visibleCardsInSection > 0) {
+                section.classList.remove('hidden');
+                section.classList.add('flex');
+            } else {
+                section.classList.add('hidden');
+                section.classList.remove('flex');
+            }
+        });
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedTab = localStorage.getItem('activeTab') || 'inventory';
+        switchTab(savedTab);
+        feather.replace();
+    });
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Slawburger Inventory{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+            theme: {
+                extend: {
+                    colors: {
+                        'accent-blue': '#3b82f6',
+                        'accent-red': '#ef4444',
+                        'accent-green': '#22c55e',
+                        'accent-orange': '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body
+    class="bg-slate-50 text-slate-900 dark:bg-[#0f172a] dark:text-slate-100 min-h-screen font-['Inter'] transition-colors duration-300">
+    <div class="container mx-auto px-4 md:px-6 lg:px-8 py-6 flex flex-col min-h-screen">
+        {% include 'includes/header.html' %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% include 'includes/modals.html' %}
+    {% include 'includes/scripts.html' %}
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

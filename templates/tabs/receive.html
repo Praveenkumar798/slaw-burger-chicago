@@ -1,0 +1,115 @@
+<!-- GOODS INWARD TAB -->
+<main id="tab-receive" class="tab-content hidden flex-col gap-8">
+    <div class="flex flex-col xl:flex-row gap-8 items-start">
+        <!-- LEFT: New Receipt Form -->
+        <div
+            class="w-full xl:w-[450px] shrink-0 p-6 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-lg">
+            <h2 class="text-xl font-bold flex items-center gap-2 mb-6">
+                <i data-feather="plus-circle" class="w-5 h-5 text-accent-blue"></i> New Goods Inward
+            </h2>
+
+            <!-- Staging Form -->
+            <div class="flex flex-col gap-4 mb-6">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-grow">
+                        <label
+                            class="block text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Ingredient</label>
+                        <select id="recv_ingredient"
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                            <option value="">Select Item...</option>
+                            {% for item in all_ingredients %}
+                            <option value="{{ item.id }}" data-unit="{{ item.unit }}">{{ item.name }} ({{
+                                item.unit }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="w-full sm:w-32">
+                        <label
+                            class="block text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Qty</label>
+                        <input type="number" step="any" id="recv_quantity" placeholder="0.0"
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all text-lg font-bold">
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 items-end">
+                    <div class="flex-grow">
+                        <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Total
+                            Cost ($)</label>
+                        <input type="number" step="any" id="recv_cost" placeholder="Optional"
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                    </div>
+                    <button type="button"
+                        class="w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-xl font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-md"
+                        onclick="addToStaging()">Add Item</button>
+                </div>
+            </div>
+
+            <!-- Staged Items List -->
+            <div
+                class="rounded-2xl bg-slate-100/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 overflow-hidden mb-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse" id="staged-table">
+                        <thead>
+                            <tr
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-slate-200/50 dark:bg-white/5">
+                                <th class="px-4 py-3">Item</th>
+                                <th class="px-4 py-3">Qty</th>
+                                <th class="px-4 py-3">Cost</th>
+                                <th class="px-4 py-3 w-10"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="empty-row">
+                                <td colspan="4" class="px-4 py-8 text-center text-sm text-slate-400 font-medium">No
+                                    items
+                                    added to this receipt yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Global Receipt Details -->
+            <div class="pt-6 border-t border-slate-200 dark:border-white/10 flex flex-col gap-4">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="flex-grow">
+                        <label
+                            class="block text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Supplier</label>
+                        <input type="text" id="recv_supplier" placeholder="e.g. Sysco"
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                    </div>
+                    <div class="flex-grow">
+                        <label
+                            class="block text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Invoice
+                            #</label>
+                        <input type="text" id="recv_invoice" placeholder="Optional"
+                            class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                    </div>
+                </div>
+                <button type="button"
+                    class="w-full bg-accent-green text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-accent-green/20 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-3"
+                    onclick="submitBulkReceipt()" id="btn-submit-receipt">
+                    <i data-feather="check" class="w-6 h-6"></i> Confirm Receipt
+                </button>
+                <div id="recv-message" class="message text-center"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: History -->
+        <div
+            class="w-full flex-grow p-6 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <i data-feather="clock" class="w-5 h-5 text-slate-400"></i> Recent Receipts
+                </h2>
+                <button class="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 transition-all"
+                    onclick="loadDeliveryHistoryInTab()">
+                    <i data-feather="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="history-list-scroll rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden"
+                id="goods-in-history">
+                <div class="p-8 text-center text-slate-400">Loading history...</div>
+            </div>
+        </div>
+    </div>
+</main>

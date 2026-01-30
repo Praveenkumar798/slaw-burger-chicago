@@ -1,0 +1,17 @@
+runtime: python312
+
+# Entry point - runs gunicorn with Flask app
+entrypoint: gunicorn -b :$PORT --timeout 300 --workers 1 app:app
+
+# Environment variables
+env_variables:
+  GCS_BUCKET_NAME: 'inventory-slawburger'
+
+# Automatic scaling configuration
+automatic_scaling:
+  max_instances: 5
+  min_instances: 0
+  target_cpu_utilization: 0.65
+
+# Instance class (F1 = smallest, cheapest)
+instance_class: F1

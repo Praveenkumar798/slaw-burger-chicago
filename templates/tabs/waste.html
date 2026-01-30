@@ -1,0 +1,85 @@
+<!-- ADJUSTMENTS TAB -->
+<main id="tab-waste" class="tab-content hidden flex-col gap-8">
+    <div
+        class="max-w-xl mx-auto w-full p-8 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-xl">
+        <h2 class="text-2xl font-bold flex items-center gap-2 mb-2">
+            <i data-feather="sliders" class="w-6 h-6 text-accent-blue"></i> Inventory Adjustment
+        </h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-8 ml-1">Log waste or manual stock
+            corrections.</p>
+
+        <form id="wasteForm" class="flex flex-col gap-6">
+            <div class="flex flex-col gap-2">
+                <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Adjustment
+                    Type</label>
+                <div
+                    class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5">
+                    <label
+                        class="adj-type-btn flex items-center justify-center py-3 px-4 rounded-xl cursor-pointer font-bold transition-all duration-200 active"
+                        id="btn-deduct">
+                        <input type="radio" name="adj_type" value="Deduction" checked onchange="toggleAdjMode()"
+                            class="hidden">
+                        <span>Deduction</span>
+                    </label>
+                    <label
+                        class="adj-type-btn flex items-center justify-center py-3 px-4 rounded-xl cursor-pointer font-bold transition-all duration-200"
+                        id="btn-add">
+                        <input type="radio" name="adj_type" value="Addition" onchange="toggleAdjMode()" class="hidden">
+                        <span>Addition</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Ingredient</label>
+                <select id="waste_ingredient" required
+                    class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                    <option value="">Select Ingredient...</option>
+                    {% for item in all_ingredients %}
+                    <option value="{{ item.id }}">{{ item.name }} ({{ item.unit }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="flex flex-col gap-2">
+                    <label id="qty-label"
+                        class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Quantity to
+                        Deduct</label>
+                    <input type="number" step="0.01" id="waste_quantity" required placeholder="0.00"
+                        class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all text-lg font-bold">
+                </div>
+                <div class="flex flex-col gap-2">
+                    <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Reason</label>
+                    <select id="waste_reason" required
+                        class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                        <option value="Spoiled/Expired">Spoiled/Expired</option>
+                        <option value="Dropped/Contaminated">Dropped/Contaminated</option>
+                        <option value="Recipe Mismatch">Recipe Mismatch</option>
+                        <option value="Manual Correction">Manual Correction</option>
+                        <option value="Quality Control">Quality Control</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Staff
+                    Member</label>
+                <input type="text" id="waste_staff" placeholder="Optional"
+                    class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="block text-sm font-semibold text-slate-500 dark:text-slate-400 ml-1">Notes</label>
+                <input type="text" id="waste_notes" placeholder="e.g. Recipe mismatch correction"
+                    class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+            </div>
+
+            <button type="submit"
+                class="w-full bg-accent-red text-white px-6 py-4 rounded-2xl font-black text-lg shadow-xl shadow-accent-red/20 hover:scale-[1.01] active:scale-95 transition-all mt-4"
+                id="adj-submit-btn">Log Adjustment</button>
+            <div id="waste-message" class="message text-center"></div>
+        </form>
+    </div>
+</main>

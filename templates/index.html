@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Data injection for JS -->
+<script id="recipes-data" type="application/json">{{ recipes|tojson }}</script>
+<script id="ingredients-data" type="application/json">{{ all_ingredients|tojson }}</script>
+
+<!-- TABS -->
+{% include 'tabs/inventory.html' %}
+{% include 'tabs/receive.html' %}
+{% include 'tabs/waste.html' %}
+{% include 'tabs/history.html' %}
+{% include 'tabs/recipes.html' %}
+{% endblock %}

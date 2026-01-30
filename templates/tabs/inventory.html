@@ -1,0 +1,115 @@
+<!-- INVENTORY TAB -->
+<main id="tab-inventory" class="tab-content flex flex-col gap-8">
+    <div class="flex flex-col gap-4 w-full">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h2 class="text-2xl font-bold">Inventory Overview</h2>
+            <div class="flex gap-3 w-full sm:w-auto">
+                <button id="toast-sync-btn"
+                    class="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-accent-orange text-black px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-accent-orange/20"
+                    onclick="triggerToastSync()">
+                    <i data-feather="refresh-cw" class="w-4 h-4"></i> <span class="hidden xs:inline">Sync
+                        Toast</span><span class="inline xs:hidden">Sync</span>
+                </button>
+                <button
+                    class="hidden flex-1 sm:flex-none flex items-center justify-center gap-2 bg-accent-blue text-white px-4 py-2.5 rounded-xl font-bold transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-accent-blue/20"
+                    onclick="openItemModal()">
+                    <i data-feather="plus" class="w-4 h-4"></i> New Item
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters Row -->
+        <div
+            class="flex flex-col lg:flex-row gap-4 p-4 rounded-2xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm">
+            <div class="relative flex-grow">
+                <i data-feather="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                <input type="text" id="inventory-search" placeholder="Search ingredients..."
+                    class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-accent-blue outline-none transition-all"
+                    oninput="filterInventory()">
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                <select id="inventory-category-filter" onchange="filterInventory()"
+                    class="flex-grow sm:w-48 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2 focus:ring-2 focus:ring-accent-blue outline-none transition-all">
+                    <option value="all">All Categories</option>
+                    {% for category in inventory_by_category.keys() %}
+                    <option value="{{ category }}">{{ category }}</option>
+                    {% endfor %}
+                </select>
+                <label
+                    class="flex items-center gap-3 px-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
+                    <input type="checkbox" id="low-stock-only" onchange="filterInventory()"
+                        class="w-5 h-5 rounded-md border-slate-300 dark:border-white/20 text-accent-blue focus:ring-accent-blue bg-white dark:bg-slate-800">
+                    <span class="text-sm font-medium whitespace-nowrap">Low Stock Only</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    {% for category, items in inventory_by_category.items() %}
+    <section class="inventory-section flex flex-col gap-4" data-category="{{ category }}">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mt-4">{{
+            category }}</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {% for item in items %}
+            <div class="inventory-card group relative p-5 rounded-3xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                data-name="{{ item.name|lower }}" data-category="{{ category }}"
+                data-low-stock="{{ 'true' if item.current_stock <= item.low_stock_threshold else 'false' }}">
+
+                <div class="flex justify-between items-start mb-4 relative z-10">
+                    <div class="flex flex-col">
+                        <span
+                            class="text-base font-bold leading-tight group-hover:text-accent-blue transition-colors">{{
+                            item.name }}</span>
+                        <div class="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                class="p-1.5 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-accent-blue hover:text-white transition-all"
+                                data-item='{{ item|tojson }}' onclick="openItemModal(JSON.parse(this.dataset.item))"
+                                title="Edit Item">
+                                <i data-feather="edit-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button
+                                class="p-1.5 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-accent-red hover:text-white transition-all text-accent-red"
+                                onclick="deleteIngredient('{{ item.id }}', '{{ item.name|escape }}')"
+                                title="Delete Item">
+                                <i data-feather="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% if item.current_stock <= item.low_stock_threshold %} <span
+                        class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-red/10 text-accent-red border border-accent-red/20">
+                        Low</span>
+                        {% else %}
+                        <span
+                            class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-green/10 text-accent-green border border-accent-green/20">OK</span>
+                        {% endif %}
+                </div>
+
+                <div class="flex items-baseline gap-1 mb-4 relative z-10">
+                    <span class="text-3xl font-black">{{ "%.1f"|format(item.current_stock) }}</span>
+                    <span class="text-sm font-bold text-slate-500 dark:text-slate-400">{{ item.unit }}</span>
+                </div>
+
+                <div class="relative h-2 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden mb-3">
+                    {% set fill_width = [100, (item.current_stock / (item.low_stock_threshold * 3)) * 100]|min
+                    %}
+                    <div class="stock-bar absolute top-0 left-0 h-full rounded-full transition-all duration-500 {{ 'bg-accent-red shadow-[0_0_10px_rgba(239,68,68,0.5)]' if item.current_stock <= item.low_stock_threshold else 'bg-accent-green shadow-[0_0_10px_rgba(34,197,94,0.3)]' }}"
+                        style="width: {{ fill_width }}%"></div>
+                </div>
+
+                <div
+                    class="flex justify-between items-center text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                    <span>Min: {{ item.low_stock_threshold }}</span>
+                    {% if item.cost_per_unit %}
+                    <span>${{ "%.2f"|format(item.cost_per_unit) }}/{{ item.unit }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Decoration -->
+                <div
+                    class="absolute -right-4 -bottom-4 w-24 h-24 bg-accent-blue/5 rounded-full blur-3xl group-hover:bg-accent-blue/10 transition-all">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</main>

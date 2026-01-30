@@ -1,0 +1,28 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+*.log
+.env
+toast_token.txt
+
+# Documentation files
+MOBILE_NAV_ARROWS.md
+RECIPE_BUG_FIXES.md
+RECIPE_CODE_REVIEW.md
+RECIPE_FOOTER_FIX.md
+README.md
+
+# Docker files (not needed for App Engine)
+Dockerfile
+.dockerignore
+gunicorn_config.py
+startup.py
+
+# Deployment docs
+DEPLOY.md

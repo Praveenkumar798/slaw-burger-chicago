@@ -1,0 +1,66 @@
+<header class="flex flex-col gap-6 mb-8">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-extrabold tracking-tight">Slawburger</h1>
+            <div class="text-sm text-slate-500 dark:text-slate-400 font-medium">Inventory Management</div>
+        </div>
+        <div
+            class="flex items-center gap-2 text-accent-green bg-accent-green/10 px-3 py-1.5 rounded-full text-sm font-semibold border border-accent-green/20">
+            <span class="w-2 h-2 bg-accent-green rounded-full animate-pulse"></span> Live
+        </div>
+    </div>
+
+    <!-- Navigation with Scroll Arrows -->
+    <div class="relative">
+        <!-- Left Scroll Arrow (Mobile Only) -->
+        <button id="nav-scroll-left"
+            class="md:hidden absolute left-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300"
+            onclick="scrollNav('left')" aria-label="Scroll left"
+            style="background: linear-gradient(to right, rgba(30, 41, 59, 0.95) 0%, rgba(30, 41, 59, 0.8) 50%, transparent 100%);">
+            <div
+                class="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-2.5 transition-all duration-200 border border-white/10 shadow-lg hover:shadow-xl hover:scale-110">
+                <i data-feather="chevron-left" class="w-4 h-4 text-white"></i>
+            </div>
+        </button>
+
+        <!-- Right Scroll Arrow (Mobile Only) -->
+        <button id="nav-scroll-right"
+            class="md:hidden absolute right-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center transition-all duration-300"
+            onclick="scrollNav('right')" aria-label="Scroll right"
+            style="background: linear-gradient(to left, rgba(30, 41, 59, 0.95) 0%, rgba(30, 41, 59, 0.8) 50%, transparent 100%);">
+            <div
+                class="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-2.5 transition-all duration-200 border border-white/10 shadow-lg hover:shadow-xl hover:scale-110">
+                <i data-feather="chevron-right" class="w-4 h-4 text-white"></i>
+            </div>
+        </button>
+
+        <nav id="main-nav"
+            class="flex overflow-x-auto pb-2 -mx-1 md:mx-0 md:pb-0 scrollbar-hide gap-2 bg-slate-200/50 dark:bg-white/5 p-1.5 rounded-2xl backdrop-blur-md border border-slate-200 dark:border-white/10 scroll-smooth">
+            <button
+                class="nav-btn whitespace-nowrap px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 active bg-accent-blue text-white shadow-lg shadow-accent-blue/20"
+                onclick="switchTab('inventory')">
+                <i data-feather="box" class="w-4 h-4"></i> Inventory
+            </button>
+            <button
+                class="nav-btn whitespace-nowrap px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 text-slate-500 dark:text-slate-400 bg-transparent"
+                onclick="switchTab('receive')">
+                <i data-feather="truck" class="w-4 h-4"></i> Goods Inward
+            </button>
+            <button
+                class="nav-btn whitespace-nowrap px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 text-slate-500 dark:text-slate-400 bg-transparent"
+                onclick="switchTab('waste')">
+                <i data-feather="sliders" class="w-4 h-4"></i> Adjustments
+            </button>
+            <button
+                class="nav-btn whitespace-nowrap px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 text-slate-500 dark:text-slate-400 bg-transparent"
+                onclick="switchTab('history')">
+                <i data-feather="clock" class="w-4 h-4"></i> History
+            </button>
+            <button
+                class="nav-btn whitespace-nowrap px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 text-slate-500 dark:text-slate-400 bg-transparent"
+                onclick="switchTab('recipes')">
+                <i data-feather="book-open" class="w-4 h-4"></i> Recipes
+            </button>
+        </nav>
+    </div>
+</header>
