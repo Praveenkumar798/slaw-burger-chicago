@@ -230,7 +230,8 @@ def run_sync(dry_run=False):
          creds["RESTAURANT_GUID"] = creds["MANAGEMENT_GROUP_GUID"]
          
     if not creds.get("RESTAURANT_GUID"):
-        return False, "Missing RESTAURANT_GUID"
+        error_msg = "Missing RESTAURANT_GUID. Please configure credentials via /api/setup/credentials endpoint."
+        return False, error_msg
 
     # Proactive token check / refresh if needed
     if not creds.get("ACCESS_TOKEN"):

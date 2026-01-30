@@ -26,6 +26,6 @@ wheels/
 *.swp
 *.swo
 .DS_Store
-toast_credentials.txt
-logs/*.txt
+logs/inventory_log.txt
+logs/last_sync_time.txt
 *.log

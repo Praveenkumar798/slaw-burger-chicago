@@ -31,6 +31,37 @@ inventory = InventoryManager()
 delivery_manager = GoodsInwardManager()
 adjustment_manager = AdjustmentManager()
 
+@app.route('/api/setup/credentials', methods=['GET', 'POST', 'PUT'])
+def manage_credentials():
+    """Get or update Toast API credentials"""
+    if request.method == 'GET':
+        # Return credential status (without exposing actual values)
+        creds = toast_api.load_credentials()
+        return jsonify({
+            "has_client_id": bool(creds.get("CLIENT_ID")),
+            "has_client_secret": bool(creds.get("CLIENT_SECRET")),
+            "has_restaurant_guid": bool(creds.get("RESTAURANT_GUID")),
+            "has_access_token": bool(creds.get("ACCESS_TOKEN")),
+            "has_management_group_guid": bool(creds.get("MANAGEMENT_GROUP_GUID"))
+        })
+    
+    elif request.method in ['POST', 'PUT']:
+        # Update credentials
+        data = request.get_json()
+        creds = toast_api.load_credentials()
+        
+        # Update only provided fields
+        keys_to_update = ["CLIENT_ID", "CLIENT_SECRET", "RESTAURANT_GUID", "ACCESS_TOKEN", "MANAGEMENT_GROUP_GUID"]
+        for key in keys_to_update:
+            if key in data and data[key]:
+                creds[key] = data[key]
+        
+        # Save to file
+        if toast_api.save_credentials(creds):
+            return jsonify({"status": "success", "message": "Credentials saved successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Failed to save credentials"}), 500
+
 @app.route('/api/sync/toast', methods=['POST'])
 def sync_toast():
     """Initial check/preview for sync"""
