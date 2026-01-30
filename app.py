@@ -32,11 +32,12 @@ delivery_manager = GoodsInwardManager()
 adjustment_manager = AdjustmentManager()
 
 def sync_db_to_cloud():
-    """Sync database to Cloud Storage after changes"""
+    """Sync database to Cloud Storage after changes (optional)"""
     try:
         app_startup.sync_database_to_storage()
     except Exception as e:
-        print(f"⚠️  Error syncing database to cloud: {e}")
+        # Silently fail if cloud sync is not available
+        print(f"[DEBUG] Could not sync to cloud: {str(e)[:100]}")
 
 @app.route('/api/setup/credentials', methods=['GET', 'POST', 'PUT'])
 def manage_credentials():
